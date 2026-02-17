@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Nehru Arts & Science College – Student Portal</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- LIBRARIES -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+body{margin:0;font-family:Arial;background:#f4f6fb}
+.sidebar{position:fixed;left:0;top:0;width:220px;height:100%;background:#0b3c5d;color:#fff;padding:15px}
+.sidebar h2{color:#fff;text-align:center}
+.sidebar button{width:100%;margin:6px 0;padding:10px;border:none;background:#1d6fa5;color:#fff;cursor:pointer}
+.sidebar button:hover{background:#328cc1}
+.main{margin-left:240px;padding:20px}
+.box{background:#fff;padding:15px;margin-bottom:20px;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,.1)}
+h1,h2{color:#0b3c5d}
+input,select,button{padding:6px;margin:4px}
+table{width:100%;border-collapse:collapse;margin-top:10px}
+th,td{border:1px solid #333;padding:6px;text-align:center}
+th{background:#1d6fa5;color:#fff}
+.pass{color:green;font-weight:bold}
+.fail{color:red;font-weight:bold}
+#loginOverlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;justify-content:center;align-items:center}
+#loginBox{background:#fff;padding:20px;width:300px;border-radius:8px;text-align:center}
+.slider img{width:100%;height:320px;object-fit:cover;border-radius:8px}
+.module{display:none}
+.module.active{display:block}
+.chart{width:90%;max-width:600px;margin-top:30px}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginOverlay">
+  <div id="loginBox">
+    <h2>Login</h2>
+    <input id="loginName" placeholder="Username"><br>
+    <input id="loginPass" type="password" placeholder="Password"><br>
+    <button onclick="doLogin()">Login</button>
+    <p id="loginError" style="color:red"></p>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <h2>College Portal</h2>
+  <button onclick="showModule('home')">Dashboard</button>
+  <button onclick="showModule('students')">Student Details</button>
+  <button onclick="showModule('attendance')">Attendance</button>
+  <button onclick="showModule('result')">Student Result</button>
+  <button onclick="showModule('about')">About</button>
+  <button onclick="showModule('help')">Help</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- HOME -->
+<div id="home" class="module active box">
+  <h1>Welcome to Nehru Arts & Science College</h1>
+  <div class="slider">
+    <img id="slideImg" src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b">
+  </div>
+</div>
+
+<!-- STUDENT DETAILS -->
+<div id="students" class="module box">
+  <h2>Student Details</h2>
+  <input id="sdName" placeholder="Student Name">
+  <input id="sdDept" placeholder="Department">
+  <button onclick="addStudentDetail()">Add</button>
+
+  <table>
+    <thead><tr><th>Name</th><th>Dept</th><th>Action</th></tr></thead>
+    <tbody id="studentDetailTable"></tbody>
+  </table>
+</div>
+
+<!-- ATTENDANCE -->
+<div id="attendance" class="module box">
+  <h2>Attendance</h2>
+  <input id="attName" placeholder="Student Name">
+  <input id="totalDays" type="number" placeholder="Total Days">
+  <input id="presentDays" type="number" placeholder="Present Days">
+  <button onclick="addAttendance()">Add</button>
+
+  <table>
+    <thead><tr><th>Name</th><th>Total</th><th>Present</th><th>Absent</th><th>%</th><th>Action</th></tr></thead>
+    <tbody id="attTable"></tbody>
+  </table>
+</div>
+
+<!-- STUDENT RESULT -->
+<div id="result" class="module box">
+  <h2>Student Result Analysis</h2>
+  <input id="className" placeholder="Class (Eg: BSc CS)">
+  <select id="sectionName"><option>A</option><option>B</option><option>C</option></select>
+  <select id="semester"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+
+  <h3>Add Subject</h3>
+  <input id="newSubject" placeholder="Subject name">
+  <button onclick="addSubject()">Add</button>
+  <table id="subjectTable">
+    <thead><tr><th>Subject</th><th>Action</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <h3>Add Student</h3>
+  <input id="studentName" placeholder="Student Name">
+  <select id="maxMarks"><option value="100">100</option><option value="75">75</option></select>
+  <div id="marksInputs"></div>
+  <button onclick="addStudent()">Save Student</button>
+
+  <h3>Search Result</h3>
+  <select id="searchClass"><option value="">All Classes</option></select>
+  <select id="searchSection"><option value="">All Sections</option><option>A</option><option>B</option><option>C</option></select>
+  <select id="searchSubject"></select>
+  <button onclick="searchResult()">Search</button>
+
+  <table id="resultTable"><thead id="tableHead"></thead><tbody></tbody></table>
+  <button onclick="downloadPDF()">Download PDF</button>
+  <div class="chart"><canvas id="gradeChart"></canvas></div>
+</div>
+
+<!-- ABOUT -->
+<div id="about" class="module box">
+  <h2>About</h2>
+  <p>Nehru Arts & Science College provides quality education with modern digital systems.</p>
+</div>
+
+<!-- HELP -->
+<div id="help" class="module box">
+  <h2>Help</h2>
+  <p>Password is fixed by admin. Contact office for support.</p>
+</div>
+
+</div>
+
+<script>
+/* LOGIN */
+function doLogin(){
+  if(loginPass.value==="123456"){ loginOverlay.style.display="none"; }
+  else loginError.innerText="Invalid Password";
+}
+loginName.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();loginPass.focus();}});
+loginPass.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();doLogin();}});
+
+/* MODULE SWITCH */
+function showModule(id){
+  document.querySelectorAll(".module").forEach(m=>m.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+/* SLIDER */
+const slides=[
+"https://images.unsplash.com/photo-1503676260728-1c00da094a0b",
+"https://images.unsplash.com/photo-1523050854058-8df90110c9f1",
+"https://images.unsplash.com/photo-1509062522246-3755977927d7"
+];
+let si=0;
+setInterval(()=>{si=(si+1)%slides.length;slideImg.src=slides[si];},3000);
+
+/* STUDENT DETAILS */
+let sd=[];
+function addStudentDetail(){
+  if(!sdName.value) return;
+  sd.push({n:sdName.value,d:sdDept.value});
+  renderSD();
+  sdName.value="";sdDept.value="";
+}
+function renderSD(){
+  studentDetailTable.innerHTML="";
+  sd.forEach((s,i)=>{
+    studentDetailTable.innerHTML+=`<tr>
+    <td contenteditable="true" onblur="sd[${i}].n=this.innerText">${s.n}</td>
+    <td contenteditable="true" onblur="sd[${i}].d=this.innerText">${s.d}</td>
+    <td><button onclick="sd.splice(${i},1);renderSD()">Delete</button></td>
+    </tr>`;
+  });
+}
+sdName.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();sdDept.focus();}});
+sdDept.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addStudentDetail();}});
+
+/* ATTENDANCE */
+let attList=[];
+function addAttendance(){
+  let t=+totalDays.value,p=+presentDays.value;
+  if(!attName.value || t<=0 || p<0 || p>t) return alert("Check input!");
+  let a=t-p;
+  let per=((p/t)*100).toFixed(2);
+  attList.push({name:attName.value,total:t,present:p,absent:a,percent:per});
+  renderAttendance();
+  attName.value=totalDays.value=presentDays.value="";
+}
+function renderAttendance(){
+  attTable.innerHTML="";
+  attList.forEach((a,i)=>{
+    attTable.innerHTML+=`<tr>
+      <td>${a.name}</td><td>${a.total}</td><td>${a.present}</td><td>${a.absent}</td><td>${a.percent}%</td>
+      <td><button onclick="attList.splice(${i},1);renderAttendance()">Delete</button></td>
+    </tr>`;
+  });
+}
+attName.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();totalDays.focus();}});
+totalDays.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();presentDays.focus();}});
+presentDays.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();addAttendance();}});
+
+/* STUDENT RESULT */
+let subjects=[], students=[];
+function addSubject(){
+  const s=newSubject.value.trim();
+  if(!s || subjects.includes(s)) return;
+  subjects.push(s);
+  students.forEach(st=>st.marks[s]=0);
+  renderSubjects(); renderInputs(); renderHeader(); updateSearchSubjects();
+  newSubject.value="";
+}
+function renderSubjects(){
+  const tb=document.querySelector("#subjectTable tbody"); tb.innerHTML="";
+  subjects.forEach((s,i)=>{tb.innerHTML+=`<tr><td>${s}</td><td><button onclick="deleteSubject(${i})">Delete</button></td></tr>`;});
+}
+function deleteSubject(i){ const s=subjects[i]; subjects.splice(i,1); students.forEach(st=>delete st.marks[s]);
+renderSubjects(); renderInputs(); renderHeader(); updateTable(students); updateCharts();}
+function renderInputs(){
+  marksInputs.innerHTML=""; const max=parseInt(maxMarks.value);
+  subjects.forEach((s,i)=>{
+    const inp=document.createElement("input"); inp.type="number"; inp.placeholder=s; inp.dataset.sub=s;
+    inp.oninput=()=>{ if(inp.value>max) inp.value=max; if(inp.value<0) inp.value=0; };
+    inp.addEventListener("keydown",e=>{
+      if(e.key==="Enter"){e.preventDefault();
+        if(i<subjects.length-1) marksInputs.children[i+1].focus();
+        else addStudent();
+      }
+    });
+    marksInputs.appendChild(inp);
+  });
+}
+maxMarks.onchange=renderInputs;
+studentName.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();marksInputs.firstChild?.focus();}});
+
+function addStudent(){
+  if(!studentName.value || !className.value) return;
+  const max=parseInt(maxMarks.value); const passMark=max===75?25:35;
+  const sem=semester.value;
+  let total=0, marks={}, failed=[], totalPoints=0;
+
+  subjects.forEach(s=>{
+    const v=parseInt(document.querySelector(`[data-sub="${s}"]`).value)||0;
+    marks[s]=v; total+=v;
+    if(v<passMark) failed.push(s);
+    const per=(v/max)*100; let gp=per>=75?10:per>=60?8:per>=45?6:0; if(v<passMark) gp=0; totalPoints+=gp;
+  });
+
+  const sgpa=(totalPoints/subjects.length).toFixed(2);
+  const per=((total/(subjects.length*max))*100).toFixed(2);
+  const grade=per>=75?"A":per>=60?"B":per>=45?"C":"D";
+  const status=failed.length?`FAIL (${failed.join(",")})`:"PASS";
+
+  let existingStudent = students.find(s=>s.name===studentName.value);
+  let cgpa=sgpa;
+  if(existingStudent){
+    const sgs=[parseFloat(existingStudent.sgpa), parseFloat(sgpa)];
+    cgpa=(sgs.reduce((a,b)=>a+b,0)/sgs.length).toFixed(2);
+    existingStudent.className=className.value;
+    existingStudent.section=sectionName.value;
+    existingStudent.semester=sem;
+    existingStudent.marks=marks;
+    existingStudent.status=status;
+    existingStudent.grade=grade;
+    existingStudent.sgpa=sgpa;
+    existingStudent.cgpa=cgpa;
+  } else {
+    students.push({name:studentName.value,className:className.value,section:sectionName.value,semester:sem,
+      marks,status,grade,sgpa,cgpa});
+  }
+
+  studentName.value=""; renderInputs(); updateTable(students); updateCharts(); updateSearchSubjects(); updateClassOptions();
+}
+
+function renderHeader(subjectOnly){
+  let h="<tr><th>Name</th><th>Class</th><th>Section</th><th>Semester</th>";
+  if(subjectOnly){h+=`<th>${subjectOnly}</th><th>Status</th>`;}
+  else{subjects.forEach(s=>h+=`<th>${s}</th>`); h+="<th>Grade</th><th>Status</th><th>SGPA</th><th>CGPA</th><th>Action</th>";}
+  h+="</tr>"; tableHead.innerHTML=h;
+}
+function updateTable(data){
+  const tb=document.querySelector("#resultTable tbody"); tb.innerHTML="";
+  data.forEach((s,i)=>{
+    let r=`<tr><td>${s.name}</td><td>${s.className}</td><td>${s.section}</td><td>${s.semester}</td>`;
+    subjects.forEach(sub=>r+=`<td>${s.marks[sub]||0}</td>`);
+    r+=`<td>${s.grade}</td><td class="${s.status.startsWith("PASS")?"pass":"fail"}">${s.status}</td><td>${s.sgpa}</td><td>${s.cgpa}</td>`;
+    r+=`<td><button onclick="editStudent(${i})">Edit</button> <button onclick="deleteStudent(${i})">Delete</button></td>`;
+    r+=`</tr>`; tb.innerHTML+=r;
+  });
+}
+function editStudent(index){
+  const s=students[index];
+  studentName.value=s.name; className.value=s.className; sectionName.value=s.section; semester.value=s.semester;
+  subjects.forEach((sub,i)=>{
+    const inp=marksInputs.children[i]; if(inp) inp.value=s.marks[sub];
+  });
+  students.splice(index,1);
+}
+function deleteStudent(index){
+  if(confirm("Are you sure you want to delete this student?")){
+    students.splice(index,1); updateTable(students); updateCharts(); updateClassOptions();
+  }
+}
+function updateSearchSubjects(){
+  searchSubject.innerHTML=`<option value="">Select Subject</option>`;
+  subjects.forEach(s=>searchSubject.innerHTML+=`<option value="${s}">${s}</option>`);
+}
+function updateClassOptions(){
+  const classSelect = document.getElementById("searchClass");
+  const classes = [...new Set(students.map(s => s.className))];
+  classSelect.innerHTML = `<option value="">All Classes</option>`;
+  classes.forEach(c => { classSelect.innerHTML += `<option value="${c}">${c}</option>`; });
+}
+function searchResult(){
+  const cls=searchClass.value.trim(), sec=searchSection.value, sub=searchSubject.value;
+  let filtered=students.filter(s=>(!cls||s.className===cls)&&(!sec||s.section===sec));
+  if(sub){
+    renderHeader(sub); const tb=document.querySelector("#resultTable tbody"); tb.innerHTML="";
+    filtered.forEach(s=>tb.innerHTML+=`<tr><td>${s.name}</td><td>${s.className}</td><td>${s.section}</td><td>${s.semester}</td>
+      <td>${s.marks[sub]||0}</td><td class="${s.status.startsWith("PASS")?"pass":"fail"}">${s.status}</td></tr>`);
+  }else{ renderHeader(); updateTable(filtered); }
+}
+
+/* PIE CHART */
+const gradeChart=new Chart(document.getElementById("gradeChart"),{type:"pie",
+data:{labels:["A","B","C","D"],datasets:[{data:[0,0,0,0],backgroundColor:["#2ecc71","#3498db","#f1c40f","#e74c3c"]}]}});
+
+function updateCharts(){
+  const g={A:0,B:0,C:0,D:0}; students.forEach(s=>g[s.grade]++);
+  gradeChart.data.datasets[0].data=[g.A,g.B,g.C,g.D]; gradeChart.update();
+}
+
+/* PDF DOWNLOAD FIX */
+function downloadPDF(){
+  const element = document.getElementById("resultTable");
+  const opt = {
+    margin: 0.5,
+    filename: 'Student_Results.pdf',
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'landscape' }
+  };
+  html2pdf().set(opt).from(element).save();
+}
+</script>
+</body>
+</html>
